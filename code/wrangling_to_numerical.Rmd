@@ -1,0 +1,105 @@
+---
+title: "CDem: wrangling to numerical data"
+author: "Rainer"
+output: 
+  html_document: 
+    toc: true
+---
+## imports
+```{r, message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(corrplot)
+
+source("functions.R")
+
+Cleaned_CES_2021_Data <- read_csv("Cleaned_CES_2021_Data.csv")
+```
+## quick cleanup
+keeping track of what type of variables we have
+```{r}
+unleveled_factor_col <- c("userlanguage","cps21_citizenship","cps21_genderid","cps21_province","cps21_duty_choice","pes21_parents_born","pes21_pidtrad","pes21_cc1","pes21_cc2","pes21_provfed", "cps21_premier_name")
+
+leveled_factor_col <- c("cps21_education","cps21_demsat","cps21_fed_gov_sat","cps21_news_cons","cps21_volunteer","cps21_interest_gen_1","cps21_interest_elxn_1","cps21_v_likely","cps21_v_likely_pr","cps21_govt_confusing","cps21_govt_say","pes21_follow_pol","pes21_lived","pes21_gap","pes21_inequal","pes21_populism_4","pes21_privjobs","pes21_abort2","pes21_womenparl","pes21_conf_inst1_1","pes21_conf_inst1_2","pes21_conf_inst1_3","pes21_conf_inst1_4")
+
+boolean_col <- c("cps21_govgen_name","cps21_finmin_name","cps21_premier_name")
+```
+1. standardize variable name
+2. factorize categorical variables. 
+```{r}
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data|>
+  rename_with(tolower) |>
+  mutate(across(where(is.character),tolower)) |>
+  mutate_at(unleveled_factor_col, as.factor) 
+```
+3. convert leveled factors to appropriate numeric values  
+
+refer to README for how numerical values are assigned
+
+```{r}
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |> 
+  
+  satisfaction_to_numeric(cps21_demsat) |>
+  satisfaction_to_numeric(pes21_dem_sat) |>
+  satisfaction_to_numeric(cps21_fed_gov_sat) 
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  interest_to_numeric(cps21_interest_elxn_1) |>
+  interest_to_numeric(cps21_interest_gen_1)
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  agreement_to_numeric(cps21_govt_confusing) |>
+  agreement_to_numeric(cps21_govt_say) |>
+  agreement_to_numeric(pes21_populism_4) |>
+  agreement_to_numeric(pes21_privjobs) |>
+  agreement_to_numeric(pes21_womenparl)
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  voting_to_numeric(cps21_v_likely)|>
+  voting_to_numeric(cps21_v_likely_pr)
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  conf_to_numeric(pes21_conf_inst1_1) |>
+  conf_to_numeric(pes21_conf_inst1_2) |>
+  conf_to_numeric(pes21_conf_inst1_3) |>
+  conf_to_numeric(pes21_conf_inst1_4) 
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  news_con_to_numeric(cps21_news_cons) |>
+  volunteer_to_numeric(cps21_volunteer) |>
+  education_to_numeric(cps21_education) |>
+  follow_pol_to_numeric(pes21_follow_pol) |>
+  lived_to_numeric(pes21_lived) |>
+  gap_to_numeric(pes21_gap) |>
+  inequal_to_numeric(pes21_inequal) |>
+  abort_to_numeric(pes21_abort2)
+
+Cleaned_CES_2021_Data = Cleaned_CES_2021_Data |>
+  govgen_to_numeric(cps21_govgen_name) |>
+  finmin_to_numeric(cps21_finmin_name) |>
+  premier_to_numeric(cps21_province,cps21_premier_name)
+
+write.csv(Cleaned_CES_2021_Data, "numerical_Cleaned_CES_2021_Data.csv", row.names=FALSE)
+```
+
+# EDA
+## correlation matrix
+```{r, cache=TRUE}
+numeric_data = subset(Cleaned_CES_2021_Data, select = c(leveled_factor_col,boolean_col,"duration__in_seconds_","cps21_yob" ))
+
+p = cor(numeric_data, use="pairwise.complete.obs")
+
+colour_scheme = c("#6600A5","#9a62bd","#ffffff","#fffca1","#FFF835")
+  
+corrplot(p, method = 'number',number.cex=0.4, col = colorRampPalette(colour_scheme)(200),tl.col = "#6600A5", tl.cex = 0.8) 
+```
+  
+  saving this as png
+```{r,message=FALSE}
+png(filename = "corrplot.png", width = 2400, height = 1600)
+corrplot(p, method = 'number',number.cex=1.8, col = colorRampPalette(colour_scheme)(200), tl.col = "#6600A5", tl.cex = 2) 
+dev.off()
+```
+

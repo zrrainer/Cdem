@@ -1,0 +1,95 @@
+---
+title: "CDem: EDA"
+author: "Rainer"
+output: 
+  html_document: 
+    toc: true
+---
+
+## imports
+```{r, message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(corrplot)
+
+Cleaned_CES_2021_Data <- read_csv("numerical_Cleaned_CES_2021_Data.csv")
+```
+## how does age correlate to politics  
+
+  lets investigate some interesting correlations. year of birth seems to be consistently negatively correlated with new consumption, political interest, likelihood to vote, populism etc. lets do some quick visual  
+  
+  <br>
+  
+  news consumption vs general interest in politics, coloured by year of birth
+```{r}
+Cleaned_CES_2021_Data |>
+  ggplot(aes(x = cps21_news_cons, y = cps21_interest_gen_1, colour = cps21_yob)) +
+  geom_jitter(width = 0.5, height = 0.5)
+```
+<br>
+
+   general interest vs year of birth
+  news con vs year of birth
+```{r}
+Cleaned_CES_2021_Data |>
+  ggplot(aes(x = cps21_interest_gen_1, y = cps21_yob)) +
+  geom_jitter(width = 0.5, height = 0.5)
+
+Cleaned_CES_2021_Data |>
+  ggplot(aes(x = cps21_news_cons, y = cps21_yob)) +
+  geom_jitter(width = 0.5, height = 0.5)
+```
+
+lets check numerically how much its actually correalted w a linear regresion model4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  news consumption vs general interest in politics, coloured by political partisanship
+```{r}
+Cleaned_CES_2021_Data |>
+  ggplot(aes(x = cps21_news_cons, y = cps21_interest_gen_1, colour = pes21_pidtrad)) +
+  geom_jitter(width = 0.5, height = 0.5, size = 0.2) +
+  facet_wrap(vars(pes21_pidtrad), nrow = 4)
+```
+<br>
+funky. partisonship has nothing to do with political interest/news consumption, even thought younger people have been well documented to be generally more liberal. lets check this  
+```{r}
+Cleaned_CES_2021_Data |>
+  filter(pes21_pidtrad == c("conservative","liberal","ndp","green","bloc québécois"))|>
+  ggplot(aes(x = cps21_yob, fill = pes21_pidtrad, colour = pes21_pidtrad)) +
+  geom_bar(position = "fill", width = 3)
+```
+ 
+<br>
+yup. overwhelmingly liberal and, surprisingly, a lot of people born in the 1990 range vote ndp. 
+<br>
+
+anyways, quick summary: age is correlated to political interest and partisanship. but political interest and partisanship do not interact. age is an *independent* predictor of partisanship.
+
+# question proposal: what are the main predictors of partisanship?
+how should we approach this?    
+
+- make a lot of visuals and see if anything comes up. this is technically feasible, but a lot of effort. also not very scalable. skip for now    
+
+- multi linear regression is not viable. partisanship is a cotegorical variable  
+
+- ML model seems to be a good bet to me... 
+
+
